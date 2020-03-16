@@ -9,7 +9,7 @@ git_dat <- read_csv("git_dat.csv",
                     col_types = list(col_character(), col_character(), col_date(), col_integer(), col_character(), col_integer()))
 
 #remove any old plots
-plots_folder <- "US_Plots"
+plots_folder <- "States_Plots"
 plot_list <- list.files(plots_folder, include.dirs=F, full.names=T)
 file.remove(plot_list)
 
@@ -66,7 +66,7 @@ for (state in states){
   state <- str_replace_all(state, " ", "_")
   ggsave(filename = paste0(i, "_", state, ".png"),
          type = "cairo",
-         path = "US_Plots",
+         path = plots_folder,
          width = 8,
          height = 5,
          units = "in")

@@ -12,11 +12,11 @@ library(gtools) #supports ordering
 source("1_Build_GIT.R")
 source("ByCountry.R")
 
-files <- list.files(path = "Plots/", pattern = ".png")
+files <- list.files(path = "Countries_Plots/", pattern = ".png")
 files <- mixedsort(files)
 
 for(h in 1:length(files)){
-   image_file<-paste('\n![](', paste0("Plots/", files[h]),')\n',sep="")
+   image_file<-paste('\n![](', paste0("Countries_Plots/", files[h]),')\n',sep="")
    #cat('\n')
    cat(image_file)
    #cat('\n\\pagebreak\n')
