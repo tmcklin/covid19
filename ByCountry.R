@@ -18,6 +18,7 @@ gs_dat <- gs_dat %>%
 
 top_30 <- gs_dat %>%
   filter(Case_Type == "Confirmed") %>%
+  mutate(Cases = replace(Cases,is.na(Cases),0)) %>%  
   filter(Date == max(Date)) %>%
   group_by(Country) %>%
   summarize(Cases = sum(Cases)) %>%
