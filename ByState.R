@@ -21,7 +21,31 @@ git_dat <- git_dat %>%
 
 dat_states <- git_dat %>%
   filter(Country == "US") %>%
-  filter(str_detect(State, "[,]", negate = TRUE))
+  filter(str_detect(State, "[,]", negate = TRUE)) %>%
+  select(-Difference)
+
+###Get today's data to provide most recent stats####
+arc_dat <- read_csv(url("https://opendata.arcgis.com/datasets/bbb2e4f589ba40d692fab712ae37b9ac_1.csv"))
+
+dat_daily <- arc_dat %>%
+  rename("Country" = `Country_Region`) %>%
+  rename("State" = `Province_State`) %>%
+  mutate(Date = as_date(Last_Update)) %>%
+  filter(Country == "US") %>%
+  select(State, Country, Date, Confirmed, Recovered, Deaths) %>%
+  group_by(State) %>%
+  mutate(Confirmed = sum(Confirmed),
+          Recovered = sum(Recovered),
+          Deaths = sum(Deaths),
+          Active = Confirmed - (Recovered + Deaths)) %>%
+  filter(Date == max(dat_states$Date)+1) %>%
+  pivot_longer(cols=c("Confirmed", "Recovered", "Deaths", "Active"),
+               names_to="Case_Type", values_to="Cases")
+
+dat_states <- bind_rows(dat_states, dat_daily)
+
+###Get population data
+pop <- read_csv("population.csv") %>% rename("Pop" = POPESTIMATE2019)
 
 state_order <- dat_states %>%
   filter(Case_Type == "Confirmed") %>%
@@ -33,6 +57,7 @@ states <- state_order$State
 i=1
 for (state in states){
 #state <- "Washington"
+
   dat <- dat_states %>%
     filter(State == state) %>%
     arrange(State, Date) %>%
@@ -41,24 +66,28 @@ for (state in states){
     group_by(State, Date, Case_Type) %>%
     summarize(Cases = sum(Cases)) %>%
     pivot_wider(names_from=Case_Type, values_from=Cases)
-  
+ 
+  pop_pct <- pop %>%
+    filter(State == state) %>%
+    mutate(pct = round((max(dat$Confirmed)/Pop)*100, digits=4)) %>%
+    mutate(pct = format(pct, scientific=F))
   
   plot_i <- ggplot(data = dat) +
     geom_col(aes(x = Date, y = Active), alpha=.5) +
-    #geom_text_repel(aes(x=Date, y = Active, label=ifelse(Active>0, Active,"")), size=3, direction="y") +
+    geom_hline(aes(yintercept=max(Confirmed)), linetype="dashed") +
     geom_point(aes(x = Date, y = Deaths), alpha=.5) +
-    #geom_text(aes(x=Date, y=Deaths, label=ifelse(Deaths>0, Deaths, "")), size=2.5, vjust=-.7) +
     geom_line(aes(x = Date, y = Recovered), color="Green") +
     labs(caption = "Grey bars represent the number of active cases.
        Green line is the number of people who have recovered.
        Dots represent the number of deaths.
        \nSource: Johns Hopkins University Coronavirus Data Stream") +
     theme_bw() +
-    ggtitle(paste0(i, ". ", state, " (", scales::comma_format()(max(dat$Confirmed)), " Confirmed Cases)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
-    theme(axis.text.x = element_text(angle = 90)) +
+    ggtitle(paste0(i, ". ", state, " (", pop_pct$pct,"% of the State Population)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
+    theme(axis.text.x = element_text(angle = 90), text=element_text(family="serif")) +
     ylab("# Active Covid-19 Cases") +
-    scale_x_date(date_breaks = "2 days") 
-  
+    scale_x_date(date_breaks = "2 days") +
+    annotate("text", x = min(dat$Date), y = max(dat$Confirmed), label = paste0("Confirmed Cases = ", scales::comma_format()(max(dat$Confirmed))), family="serif", vjust=1.3, hjust=.25)
+    
   plot_i
   
   # ######## Save Plot
