@@ -45,12 +45,9 @@ pop <- read_csv("population.csv") %>% rename("Pop" = POPESTIMATE2019)
 state <- c("New York", "Washington", "California", "North Carolina")
 
 dat <- dat_states %>%
-  #filter(State == state) %>%
   arrange(State, Date) %>%
   select(State, Date, Case_Type, Cases) %>%
   filter(Date >= "2020-01-15") %>%
-  #group_by(State, Date, Case_Type) %>%
-  #summarize(Cases = sum(Cases)) %>%
   pivot_wider(names_from=Case_Type, values_from=Cases) %>% 
   filter(Confirmed != 0) %>% 
   group_by (State) %>%
@@ -67,7 +64,6 @@ ggplot(dat, aes(x = days, y = pct, group = State, color = State)) +
        [add US Census as population source and arcgis as daily source]") +
   theme_bw() +
   #ggtitle(paste0(i, ". ", state, " (", pop_pct$pct,"% of the State Population)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
-  #theme(axis.text.x = element_text(angle = 90), text=element_text(family="serif")) +
   ylab("Confirmed Cases by Population Percentage") +
   geom_text(data = dat %>% filter(days == last(days)), aes(label = State, 
                                                                  x = days + .5,
