@@ -86,7 +86,7 @@ for (state in states){
     theme(axis.text.x = element_text(angle = 90), text=element_text(family="serif")) +
     ylab("# Active Covid-19 Cases") +
     scale_x_date(date_breaks = "2 days") +
-    annotate("text", x = min(dat$Date), y = max(dat$Confirmed), label = paste0("Confirmed Cases = ", scales::comma_format()(max(dat$Confirmed))), family="serif", vjust=1.3, hjust=.25)
+    annotate("text", x = min(dat$Date), y = max(dat$Confirmed), label = paste0("Confirmed Cases = ", scales::comma_format()(max(dat$Confirmed))), family="serif", vjust=1.5, hjust=.2)
     
   plot_i
   
