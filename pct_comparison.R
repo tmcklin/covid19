@@ -40,9 +40,15 @@ dat_daily <- arc_dat %>%
 dat_states <- bind_rows(dat_states, dat_daily)
 
 ###Get population data
-pop <- read_csv("population.csv") %>% rename("Pop" = POPESTIMATE2019)
+pop_us <- read_csv("Support Files/population.csv") %>% rename("Pop_US" = POPESTIMATE2019)
+pop_world <- read_csv("Support Files/world_population.csv") %>% 
+  rename(Country = name,
+         Pop = pop2019) %>%
+  mutate(Pop = Pop *1000) %>%
+  mutate_at(vars(Country), funs(recode(.,
+                                    "United States"       = 'US')))
 
-state <- c("New York", "Washington", "California", "North Carolina")
+state <- c("New York", "Washington", "California", "North Carolina", "Georgia")
 
 dat <- dat_states %>%
   arrange(State, Date) %>%
@@ -53,11 +59,11 @@ dat <- dat_states %>%
   group_by (State) %>%
   mutate(days = seq_along(Date)) %>%
   filter(State %in% state) %>%
-  left_join(., pop, by = "State") %>%
+  left_join(., pop_us, by = "State") %>%
   mutate(pct = round((Confirmed/Pop)*100, digits=4)) %>%
   mutate(pct = as.numeric(format(pct, scientific=F)))
 
-
+####US Comparison
 ggplot(dat, aes(x = days, y = pct, group = State, color = State)) +
   geom_line() +
   labs(caption = "Source: Johns Hopkins University Coronavirus Data Stream
@@ -71,5 +77,57 @@ ggplot(dat, aes(x = days, y = pct, group = State, color = State)) +
                                                                  color = State)) +
   scale_x_continuous(breaks = scales::pretty_breaks(10)) +
   scale_y_continuous(breaks = scales::pretty_breaks())
+################
+
+
+####World Comparison
+ggplot(dat, aes(x = days, y = pct, group = State, color = State)) +
+  geom_line() +
+  labs(caption = "Source: Johns Hopkins University Coronavirus Data Stream
+       [add US Census as population source and arcgis as daily source]") +
+  theme_bw() +
+  #ggtitle(paste0(i, ". ", state, " (", pop_pct$pct,"% of the State Population)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
+  ylab("Confirmed Cases by Population Percentage") +
+  geom_text(data = dat %>% filter(days == last(days)), aes(label = State, 
+                                                           x = days + .5,
+                                                           y = pct,
+                                                           color = State)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(10)) +
+  scale_y_continuous(breaks = scales::pretty_breaks())
+################
+
+# World population statistics from: https://worldpopulationreview.com/
+countries <- c("US", "Italy", "China", "Germany")
+dat_world <- git_dat %>%
+  select(-Difference) %>%
+  pivot_wider(names_from=Case_Type, values_from=Cases) %>% 
+  filter(Confirmed != 0) %>%
+  group_by (Country) %>%
+  group_by(Country, Date) %>%
+  summarize(Confirmed = sum(Confirmed)) %>%
+  left_join(., pop_world, by = "Country") %>%
+  mutate(pct = round((Confirmed/Pop)*100, digits=4)) %>%
+  mutate(pct = as.numeric(format(pct, scientific=F))) %>%
+  mutate(days = seq_along(Date)) %>%
+  filter(Country %in% countries)  
+
+  
+ggplot(dat_world, aes(x = days, y = pct, group = Country, color = Country)) +
+  geom_line(show.legend = FALSE) +
+  labs(caption = "Source: Johns Hopkins University Coronavirus Data Stream
+       World population statistics from: https://worldpopulationreview.com") +
+  theme_bw() +
+  #ggtitle(paste0(i, ". ", state, " (", pop_pct$pct,"% of the State Population)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
+  ylab("Confirmed Cases by Population Percentage") +
+  xlab("Days Since First Confirmed Case") +
+  geom_text(data = dat_world %>% filter(days == last(days)), aes(label = Country, 
+                                                           x = days + 1.8,
+                                                           y = pct,
+                                                           color = Country),
+            show.legend = FALSE) +
+  scale_x_continuous(breaks = scales::pretty_breaks(10)) +
+  scale_y_continuous(breaks = scales::pretty_breaks())
+
+
 
 
