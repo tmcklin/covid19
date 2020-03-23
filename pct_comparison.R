@@ -97,20 +97,26 @@ ggplot(dat, aes(x = days, y = pct, group = State, color = State)) +
 ################
 
 # World population statistics from: https://worldpopulationreview.com/
-countries <- c("US", "Italy", "China", "Germany")
+countries <- c("US", "Italy", "Germany", "Spain", "India")
 dat_world <- git_dat %>%
   select(-Difference) %>%
   pivot_wider(names_from=Case_Type, values_from=Cases) %>% 
   filter(Confirmed != 0) %>%
-  group_by (Country) %>%
   group_by(Country, Date) %>%
   summarize(Confirmed = sum(Confirmed)) %>%
   left_join(., pop_world, by = "Country") %>%
   mutate(pct = round((Confirmed/Pop)*100, digits=4)) %>%
   mutate(pct = as.numeric(format(pct, scientific=F))) %>%
-  mutate(days = seq_along(Date)) %>%
-  filter(Country %in% countries)  
+  filter(Country %in% countries) 
 
+start_date <- dat_world %>%
+  group_by(Country) %>%
+  summarize(start_Confirmed = min(Confirmed)) 
+start_date <- max(start_date$start_Confirmed)
+
+dat_world <- dat_world %>%
+  filter(Confirmed >= start_date) %>%
+  mutate(days = seq_along(Date)) 
   
 ggplot(dat_world, aes(x = days, y = pct, group = Country, color = Country)) +
   geom_line(show.legend = FALSE) +
@@ -119,7 +125,7 @@ ggplot(dat_world, aes(x = days, y = pct, group = Country, color = Country)) +
   theme_bw() +
   #ggtitle(paste0(i, ". ", state, " (", pop_pct$pct,"% of the State Population)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
   ylab("Confirmed Cases by Population Percentage") +
-  xlab("Days Since First Confirmed Case") +
+  xlab(paste0("Days Since First Confirmed Case # ", start_date)) +
   geom_text(data = dat_world %>% filter(days == last(days)), aes(label = Country, 
                                                            x = days + 1.8,
                                                            y = pct,

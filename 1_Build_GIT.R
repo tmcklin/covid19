@@ -32,29 +32,6 @@ dat_r <- dat_r %>%
   mutate(Date = str_replace_all(Date, "[.]", "-")) %>%
   mutate(Date = mdy(Date))
 
-#Option 2: Download from Github and read the csv file
-# dat_c <- read.csv(paste0("csvs/Confirmed.csv"), header = TRUE, sep = ",", na.strings = "-", stringsAsFactors = FALSE) %>%
-#   select(-Lat, -Long) %>%
-#   gather(key = "Date", value = "Confirmed", -Province.State, -Country.Region) %>%
-#   mutate(Date = substring(Date, 2)) %>%
-#   mutate(Date = str_replace_all(Date, "[.]", "-")) %>%
-#   mutate(Date = mdy(Date))
-# 
-# dat_d <- read.csv(paste0("csvs/Deaths.csv"), header = TRUE, sep = ",", na.strings = "-", stringsAsFactors = FALSE) %>%
-#   select(-Lat, -Long) %>%
-#   gather(key = "Date", value = "Deaths", -Province.State, -Country.Region) %>%
-#   mutate(Date = substring(Date, 2)) %>%
-#   mutate(Date = str_replace_all(Date, "[.]", "-")) %>%
-#   mutate(Date = mdy(Date))
-# 
-# dat_r <- read.csv(paste0("csvs/Recovered.csv"), header = TRUE, sep = ",", na.strings = "-", stringsAsFactors = FALSE) %>%
-#   select(-Lat, -Long) %>%
-#   gather(key = "Date", value = "Recovered", -Province.State, -Country.Region) %>%
-#   mutate(Date = substring(Date, 2)) %>%
-#   mutate(Date = str_replace_all(Date, "[.]", "-")) %>%
-#   mutate(Date = mdy(Date))
-#################333
-
 ####Join the three files (Confirmed, Deaths, Recovered)
 
 dat_all <- left_join(dat_c, dat_d, by=c("Province.State", "Country.Region", "Date")) %>%

@@ -42,16 +42,30 @@ dat_daily <- arc_dat %>%
   pivot_longer(cols=c("Confirmed", "Recovered", "Deaths", "Active"),
                names_to="Case_Type", values_to="Cases")
 
-dat_states <- bind_rows(dat_states, dat_daily)
+dat_states <- bind_rows(dat_states, dat_daily) %>%
+  select(-Country) %>%
+  filter(Date >= "2020-01-15") %>%
+  group_by(State, Date, Case_Type) %>%
+  summarize(Cases = sum(Cases)) %>%
+  pivot_wider(names_from=Case_Type, values_from=Cases)
 
 ###Get population data
-pop <- read_csv("population.csv") %>% rename("Pop" = POPESTIMATE2019)
+pop <- read_csv("Support Files/population.csv") %>% 
+  rename("Pop" = POPESTIMATE2019) 
 
+dat_states <- dat_states %>%
+  left_join(., pop, by="State") %>%
+  mutate(pct = round((max(Confirmed)/Pop)*100, digits=4)) %>%
+  mutate(pct = format(pct, scientific=F))
+
+write.csv(dat_states, "state_population.csv", row.names = FALSE)
+  
 state_order <- dat_states %>%
-  filter(Case_Type == "Confirmed") %>%
   group_by(State) %>%
-  summarize(Cases = max(Cases)) %>%
-  arrange(-Cases) 
+  summarize(pct = max(pct)) %>% 
+  filter(pct != "NA") %>%
+  mutate(pct = as.numeric(pct)) %>%
+  arrange(-pct) 
 
 states <- state_order$State
 i=1
@@ -59,19 +73,8 @@ for (state in states){
 #state <- "Washington"
 
   dat <- dat_states %>%
-    filter(State == state) %>%
-    arrange(State, Date) %>%
-    select(State, Date, Case_Type, Cases) %>%
-    filter(Date >= "2020-01-15") %>%
-    group_by(State, Date, Case_Type) %>%
-    summarize(Cases = sum(Cases)) %>%
-    pivot_wider(names_from=Case_Type, values_from=Cases)
- 
-  pop_pct <- pop %>%
-    filter(State == state) %>%
-    mutate(pct = round((max(dat$Confirmed)/Pop)*100, digits=4)) %>%
-    mutate(pct = format(pct, scientific=F))
-  
+    filter(State == state) 
+
   plot_i <- ggplot(data = dat) +
     geom_col(aes(x = Date, y = Active), alpha=.5) +
     geom_hline(aes(yintercept=max(Confirmed)), linetype="dashed") +
@@ -82,7 +85,7 @@ for (state in states){
        Dots represent the number of deaths.
        \nSource: Johns Hopkins University Coronavirus Data Stream") +
     theme_bw() +
-    ggtitle(paste0(i, ". ", state, " (", pop_pct$pct,"% of the State Population)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
+    ggtitle(paste0(i, ". ", state, " (", max(dat$pct),"% of the State Population)"), paste0(min(dat$Date), " to ", max(dat$Date))) +
     theme(axis.text.x = element_text(angle = 90), text=element_text(family="serif")) +
     ylab("# Active Covid-19 Cases") +
     scale_x_date(date_breaks = "2 days") +
