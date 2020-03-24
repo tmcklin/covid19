@@ -46,7 +46,8 @@ pop_world <- read_csv("Support Files/world_population.csv") %>%
          Pop = pop2019) %>%
   mutate(Pop = Pop *1000) %>%
   mutate_at(vars(Country), funs(recode(.,
-                                    "United States"       = 'US')))
+                                    "United States"       = 'US'))) %>%
+  select(Country, Pop)
 
 state <- c("New York", "Washington", "California", "North Carolina", "Georgia")
 
@@ -97,17 +98,22 @@ ggplot(dat, aes(x = days, y = pct, group = State, color = State)) +
 ################
 
 # World population statistics from: https://worldpopulationreview.com/
-countries <- c("US", "Italy", "Germany", "Spain", "India")
+countries <- c("US", "Italy", "Germany", "Spain", "Iran", "China")
 dat_world <- git_dat %>%
   select(-Difference) %>%
   pivot_wider(names_from=Case_Type, values_from=Cases) %>% 
   filter(Confirmed != 0) %>%
   group_by(Country, Date) %>%
-  summarize(Confirmed = sum(Confirmed)) %>%
+  summarize(Confirmed = sum(Confirmed),
+            Deaths = sum(Deaths),
+            Recovered = sum(Recovered),
+            Active = sum(Active)) %>%
   left_join(., pop_world, by = "Country") %>%
   mutate(pct = round((Confirmed/Pop)*100, digits=4)) %>%
   mutate(pct = as.numeric(format(pct, scientific=F))) %>%
   filter(Country %in% countries) 
+
+write.csv(dat_world, "world_population.csv", row.names = FALSE)
 
 start_date <- dat_world %>%
   group_by(Country) %>%
@@ -116,6 +122,7 @@ start_date <- max(start_date$start_Confirmed)
 
 dat_world <- dat_world %>%
   filter(Confirmed >= start_date) %>%
+  group_by(Location) %>%
   mutate(days = seq_along(Date)) 
   
 ggplot(dat_world, aes(x = days, y = pct, group = Country, color = Country)) +
